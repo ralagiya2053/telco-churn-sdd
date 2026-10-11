@@ -30,18 +30,4 @@ def build_features(source: str, **kwargs) -> pd.DataFrame:
     if 'Churn' in df.columns:
         df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
 
-    # 4. Categorical Encoding
-    # Based on EDA: All categorical features have low cardinality (max 4)
-    # and are suitable for One-Hot Encoding.
-
-    # Identify categorical columns (object or category dtypes)
-    cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-
-    # Ensure the target 'Churn' is not in the one-hot list if it's now numeric
-    if 'Churn' in cat_cols:
-        cat_cols.remove('Churn')
-
-    # Apply One-Hot Encoding
-    df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
-
     return df
