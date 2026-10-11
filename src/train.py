@@ -10,6 +10,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_auc_score
 
 # Make the import path-agnostic
 sys.path.insert(0, str(Path(__file__).parent))
@@ -89,20 +91,73 @@ def build_pipeline(numeric_cols: list[str], binary_cols: list[str], categorical_
 
     return pipeline
 
+def train_and_evaluate(df: pd.DataFrame,
+                       numeric_cols: list[str],
+                       binary_cols: list[str],
+                       categorical_cols: list[str],
+                       target_col: str = 'Churn',
+                       test_size: float = 0.2,
+                       random_state: int = 42
+                       ) -> tuple[Pipeline, dict]:
+    """
+    Split data, train the pipeline, and evaluate performance.
+
+    Args:
+        df: The prepared DataFrame.
+        numeric_cols: List of numeric features.
+        binary_cols: List of binary features.
+        categorical_cols: List of categorical features.
+        target_col: Name of the target variable.
+        test_size: Proportion of the dataset to include in the test split.
+        random_state: Controls the shuffling applied to the data before the split.
+
+    Returns:
+        A tuple of (fitted_pipeline, results_dict).
+    """
+    X = df.drop(target_col, axis=1)
+    y = df[target_col]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
+    )
+
+    pipeline = build_pipeline(numeric_cols, binary_cols, categorical_cols)
+    pipeline.fit(X_train, y_train)
+
+    y_pred = pipeline.predict(X_test)
+    y_pred_proba = pipeline.predict_proba(X_test)[:, 1]
+
+    results = {
+        'accuracy': accuracy_score(y_test, y_pred),
+        'confusion_matrix': confusion_matrix(y_test, y_pred),
+        'classification_report': classification_report(y_test, y_pred, output_dict=False),
+        'roc_auc': roc_auc_score(y_test, y_pred_proba),
+        'y_test': y_test,
+        'y_pred': y_pred
+    }
+
+    return pipeline, results
+
 if __name__ == "__main__":
-    # Verification block
     DATA_PATH = 'data/train.csv'
     try:
+        # Load and prepare data
         df, num_cols, bin_cols, cat_cols = load_and_prepare(DATA_PATH)
         print(f"Successfully loaded data from {DATA_PATH}")
         print(f"DataFrame shape: {df.shape}")
-        print(f"Numeric columns ({len(num_cols)}): {num_cols}")
-        print(f"Binary columns ({len(bin_cols)}): {bin_cols}")
-        print(f"Categorical columns ({len(cat_cols)}): {cat_cols}")
 
-        pipeline = build_pipeline(num_cols, bin_cols, cat_cols)
-        print("\nPipeline constructed:")
-        print(pipeline)
+        # Train and evaluate
+        pipeline, results = train_and_evaluate(df, num_cols, bin_cols, cat_cols)
+
+        print("\n--- Model Evaluation Results ---")
+        print(f"Accuracy: {results['accuracy']:.4f}")
+        print(f"ROC AUC:  {results['roc_auc']:.4f}")
+        print("\nConfusion Matrix:")
+        print(results['confusion_matrix'])
+        print("\nClassification Report:")
+        print(results['classification_report'])
 
     except Exception as e:
-        print(f"Verification failed: {e}")
+        print(f"Training and evaluation failed: {e}")
+        import traceback
+        traceback.print_exc()

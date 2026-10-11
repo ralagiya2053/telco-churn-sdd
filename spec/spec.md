@@ -47,7 +47,15 @@
 ## 7. Validation Criteria
 - **Metrics:** Report accuracy, confusion matrix, and a full classification report (precision, recall, f1 for both classes).
 - **Method:** The confusion matrix must be computed on the held-out test set.
-- **Success Gate:** Recall on the positive (churn) class must exceed 0.70. If it does not, do not proceed to Gate 2 — document the failure in docs/validation.md, adjust class_weight, retrain, and re-validate.
+- **Success Gate: (multiple, must all pass):**
+    - **ROC AUC > 0.75** — the primary gate. Handles class imbalance
+      properly and is threshold-independent.
+    - **Recall on the churn class (1) > 0.70** — ensures we catch most
+      churners.
+    - **F1 on the churn class (1) > 0.55** — balances precision and
+      recall on the minority class.
+    - **Note on accuracy:** Raw accuracy is NOT used as a success gate. As stated in Section 4, accuracy is misleading on this dataset's 26.5% class imbalance. A majority-class-only classifier reaches 73.5% accuracy while catching zero churners. Reporting accuracy is required, but gating on it is not.
+    - **Failure Loop:** If any success gate fails, document the failure in `docs/validation.md`, adjust `class_weight`, feature engineering, or model configuration as appropriate, retrain, and re-validate.
 - **Documentation:** All validation artifacts must be saved to `docs/validation.md`.
 
 ## 8. Deployment Requirements (Out of Scope for v1)

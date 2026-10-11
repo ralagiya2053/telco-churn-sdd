@@ -85,9 +85,11 @@ The `tests/test_pipeline.py` suite will cover:
 
 - **Execution:** Run `python src/train.py`.
 - **Reporting:** Output metrics (Accuracy, Recall, Precision, F1, Confusion Matrix) to `docs/validation.md`.
-- **Success Criteria:**
-    - Accuracy > 73.5% (Baseline).
+- *- **Success Criteria (all must pass):**
+    - ROC AUC > 0.75.
     - Recall (Churn=1) > 0.70.
+    - F1 (Churn=1) > 0.55.
+- **Accuracy** is reported but not gated (see spec/spec.md Section 7).
 - **Failure Loop:** If Recall $\le$ 0.70, adjust `class_weight` or investigate feature engineering, then retrain.
 
 ## 6. Risks & Mitigations
