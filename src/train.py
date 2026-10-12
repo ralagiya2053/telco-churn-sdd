@@ -3,6 +3,8 @@ Training module for the Telco Churn prediction model.
 Handles data preparation and preprocessing pipeline construction.
 """
 
+import json
+import joblib
 import pandas as pd
 import sys
 from pathlib import Path
@@ -91,6 +93,46 @@ def build_pipeline(numeric_cols: list[str], binary_cols: list[str], categorical_
 
     return pipeline
 
+def save_artifacts(pipeline, numeric_cols, binary_cols, categorical_cols,
+                   out_dir: str = "model") -> list[str]:
+    """
+    Extract and save the model, scaler, encoder, and feature order to the specified directory.
+
+    Args:
+        pipeline: The fitted sklearn Pipeline.
+        numeric_cols: List of numeric feature names.
+        binary_cols: List of binary feature names.
+        categorical_cols: List of categorical feature names.
+        out_dir: Directory to save artifacts.
+
+    Returns:
+        The final order of features after transformation.
+    """
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+    # Pull fitted objects via named steps
+    scaler = pipeline.named_steps['preprocessor'].named_transformers_['num']
+    encoder = pipeline.named_steps['preprocessor'].named_transformers_['cat']
+    model = pipeline.named_steps['classifier']
+
+    # Save pickles
+    joblib.dump(model, Path(out_dir) / "model.pkl")
+    joblib.dump(scaler, Path(out_dir) / "scaler.pkl")
+    joblib.dump(encoder, Path(out_dir) / "encoder.pkl")
+
+    # Build post-transform feature order
+    feature_order = (
+        list(numeric_cols) +
+        list(binary_cols) +
+        list(encoder.get_feature_names_out(categorical_cols))
+    )
+
+    # Save feature order as JSON
+    with open(Path(out_dir) / "feature_order.json", "w") as f:
+        json.dump(feature_order, f, indent=2)
+
+    return feature_order
+
 def train_and_evaluate(df: pd.DataFrame,
                        numeric_cols: list[str],
                        binary_cols: list[str],
@@ -136,6 +178,11 @@ def train_and_evaluate(df: pd.DataFrame,
         'y_pred': y_pred
     }
 
+    # Save artifacts and add feature order to results
+    results['feature_order'] = save_artifacts(
+        pipeline, numeric_cols, binary_cols, categorical_cols
+    )
+
     return pipeline, results
 
 if __name__ == "__main__":
@@ -156,6 +203,8 @@ if __name__ == "__main__":
         print(results['confusion_matrix'])
         print("\nClassification Report:")
         print(results['classification_report'])
+
+        print(f"\nSaved artifacts to model/ ({len(results['feature_order'])} features)")
 
     except Exception as e:
         print(f"Training and evaluation failed: {e}")
