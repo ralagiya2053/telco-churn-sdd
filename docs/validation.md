@@ -7,7 +7,7 @@
 - **Source Path:** `data/train.csv`
 - **Total Rows:** 7,032
 - **Churn Rate:** 26.5% (approx)
-- **Train/Test Split:** 80% Train / 20% Test (1,125 Train / 282 Test samples approx)
+- "**Train/Test Split:** 80% Train / 20% Test (5,625 Train / 1,407 Test samples approx)"
 
 ## Performance Metrics
 | Metric | Value |
